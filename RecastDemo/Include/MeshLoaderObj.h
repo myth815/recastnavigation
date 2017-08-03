@@ -28,6 +28,7 @@ public:
 	~rcMeshLoaderObj();
 	
 	bool load(const std::string& fileName);
+	bool loadFromVector(int* indexs, int indexCount, float* vertexs, int vertexCount);
 
 	const float* getVerts() const { return m_verts; }
 	const float* getNormals() const { return m_normals; }

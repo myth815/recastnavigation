@@ -103,6 +103,7 @@ public:
 	~InputGeom();
 	
 	
+	bool loadFromVector(class rcContext* ctx, const std::string& indexFilePath, const std::string& vertexsFilePath);
 	bool load(class rcContext* ctx, const std::string& filepath);
 	bool saveGeomSet(const BuildSettings* settings);
 	

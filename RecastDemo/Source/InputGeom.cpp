@@ -296,6 +296,149 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 	return true;
 }
 
+bool loadIndex(int** indexs, int& indexCount, const std::string indexFilePath)
+{
+	int* buf = 0;
+	FILE* fp = fopen(indexFilePath.c_str(), "rb");
+	if (!fp)
+	{
+		return false;
+	}
+	if (fseek(fp, 0, SEEK_END) != 0)
+	{
+		fclose(fp);
+		return false;
+	}
+
+	long bufSize = ftell(fp);
+	if (bufSize < 0)
+	{
+		fclose(fp);
+		return false;
+	}
+	if (fseek(fp, 0, SEEK_SET) != 0)
+	{
+		fclose(fp);
+		return false;
+	}
+	buf = new int[bufSize / sizeof(int)];
+	if (!buf)
+	{
+		fclose(fp);
+		return false;
+	}
+	size_t readLen = fread(buf, bufSize, 1, fp);
+	fclose(fp);
+	if (readLen != 1)
+	{
+		delete[] buf;
+		return false;
+	}
+	indexCount = bufSize;
+	*indexs = buf;
+	return true;
+}
+
+bool loadVertex(float** vertexs, int& vertexCount, const std::string vertexFilePath)
+{
+	float* buf = 0;
+	FILE* fp = fopen(vertexFilePath.c_str(), "rb");
+	if (!fp)
+	{
+		return false;
+	}
+	if (fseek(fp, 0, SEEK_END) != 0)
+	{
+		fclose(fp);
+		return false;
+	}
+
+	long bufSize = ftell(fp);
+	if (bufSize < 0)
+	{
+		fclose(fp);
+		return false;
+	}
+	if (fseek(fp, 0, SEEK_SET) != 0)
+	{
+		fclose(fp);
+		return false;
+	}
+	buf = new float[bufSize / sizeof(float)];
+	if (!buf)
+	{
+		fclose(fp);
+		return false;
+	}
+	size_t readLen = fread(buf, bufSize, 1, fp);
+	fclose(fp);
+	if (readLen != 1)
+	{
+		delete[] buf;
+		return false;
+	}
+	vertexCount = bufSize;
+	*vertexs = buf;
+	return true;
+}
+
+bool InputGeom::loadFromVector(class rcContext* ctx, const std::string& indexFilePath, const std::string& vertexsFilePath)
+{
+	if (m_mesh)
+	{
+		delete m_chunkyMesh;
+		m_chunkyMesh = 0;
+		delete m_mesh;
+		m_mesh = 0;
+	}
+	m_offMeshConCount = 0;
+	m_volumeCount = 0;
+
+	m_mesh = new rcMeshLoaderObj;
+	if (!m_mesh)
+	{
+		ctx->log(RC_LOG_ERROR, "loadMesh: Out of memory 'm_mesh'.");
+		return false;
+	}
+
+	int* indexs;
+	int indexCount;
+	if (!loadIndex(&indexs, indexCount, indexFilePath))
+	{
+		ctx->log(RC_LOG_ERROR, "loadFromVector: Could not load index data.");
+		return false;
+	}
+	float* vertexs;
+	int vertexCount;
+	if (!loadVertex(&vertexs, vertexCount, vertexsFilePath))
+	{
+		ctx->log(RC_LOG_ERROR, "loadFromVector: Could not load vertex data.");
+		return false;
+	}
+
+	if (m_mesh->loadFromVector(indexs, indexCount, vertexs, vertexCount))
+	{
+		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not loadFromVector");
+		return false;
+	}
+
+	rcCalcBounds(m_mesh->getVerts(), m_mesh->getVertCount(), m_meshBMin, m_meshBMax);
+
+	m_chunkyMesh = new rcChunkyTriMesh;
+	if (!m_chunkyMesh)
+	{
+		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Out of memory 'm_chunkyMesh'.");
+		return false;
+	}
+	if (!rcCreateChunkyTriMesh(m_mesh->getVerts(), m_mesh->getTris(), m_mesh->getTriCount(), 256, m_chunkyMesh))
+	{
+		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Failed to build chunky mesh.");
+		return false;
+	}
+
+	return true;
+}
+
 bool InputGeom::load(rcContext* ctx, const std::string& filepath)
 {
 	size_t extensionPos = filepath.find_last_of('.');

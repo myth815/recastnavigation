@@ -135,6 +135,22 @@ static int parseFace(char* row, int* data, int n, int vcnt)
 	return j;
 }
 
+bool rcMeshLoaderObj::loadFromVector(int* indexs, int indexCount, float* vertexs, int vertexCount)
+{
+	int vcap = 0;
+	int tcap = 0;
+	for (int i = 0; i < vertexCount / 3; i++)
+	{
+		addVertex(vertexs[i * 3 + 0], vertexs[i * 3 + 1], vertexs[i * 3 + 2], vcap);
+	}
+
+	for (int j = 0; j < indexCount / 3; j++)
+	{
+		addTriangle(indexs[j * 3 + 0], indexs[j * 3 + 1], indexs[j * 3 + 2], tcap);
+	}
+	return true;
+}
+
 bool rcMeshLoaderObj::load(const std::string& filename)
 {
 	char* buf = 0;
